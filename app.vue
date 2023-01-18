@@ -1,94 +1,62 @@
 <script setup lang="ts">
 import { Ref } from "vue";
+import { TickerFromApiResponse, TickerTracked } from "@/types";
+import { subscribeToTicker, unsubscribeFromTicker } from "@/api/Ticker";
 
 // IMG LINK
 // https://www.cryptocompare.com/media/34836095/433.png?width=25
+// https://min-api.cryptocompare.com/documentation?key=Toplists&cat=TopTotalVolumeEndpointFull
+// https://www.cryptocompare.com
 
-interface Ticker {
-  Id: number;
-  ImageUrl: string;
-  Symbol: string;
-  FullName: string;
+const trackedTickers: Ref<TickerTracked[]> = ref([]);
+
+function createTrackedTicker(ticker: TickerFromApiResponse): void {
+  const newTicker = {
+    ...ticker,
+    price: -1
+  }
+  trackedTickers.value = [...trackedTickers.value, newTicker];
+  subscribeToTicker(newTicker.Symbol, (newPrice: number) => updateTrackedTickerPrice(newTicker.Symbol, newPrice));
 }
 
-const { data: responseAllTickers } = await useFetch<{
-  Data: { [index: string]: Ticker };
-}>("https://min-api.cryptocompare.com/data/all/coinlist", {
-  query: { summary: true },
-  pick: ["Data"],
-});
-let allTickers: Ticker[] = [];
-if (responseAllTickers.value?.Data) {
-  allTickers = Object.values(responseAllTickers.value.Data);
-}
-
-const searchQuery = useDebounce("");
-const autocompleteTickers: Ref<Ticker[]> = ref([]);
-
-function updateAutocompleteTickers(searchName: string) {
-  autocompleteTickers.value = [];
-
-  if (searchName) {
-    const maxLength = 6;
-    let currentLength = 0;
-
-    for (const ticker of allTickers) {
-      if (
-        ticker.Symbol.toLocaleLowerCase().includes(
-          searchName.toLocaleLowerCase()
-        ) ||
-        ticker.FullName.toLocaleLowerCase().includes(
-          searchName.toLocaleLowerCase()
-        )
-      ) {
-        currentLength += 1;
-        autocompleteTickers.value.push(ticker);
-      }
-      if (currentLength >= maxLength) {
-        break;
-      }
-    }
+function updateTrackedTickerPrice(tickerSymbol: string, price: number) {
+  const foundTicker = trackedTickers.value.find(ticker => tickerSymbol === ticker.Symbol);
+  if (foundTicker) {
+    foundTicker.price = price;
   }
 }
 
-watch(searchQuery, () => {
-  updateAutocompleteTickers(searchQuery.value);
-});
+function deleteTrackedTicker(tickerSymbol: string): void {
+  unsubscribeFromTicker(tickerSymbol);
+  trackedTickers.value = trackedTickers.value.filter(ticker =>
+    ticker.Symbol !== tickerSymbol
+  );
+}
 </script>
+
 <template>
   <div class="container max-w-5xl px-3 mx-auto">
-    <form class="flex items-end gap-3">
-      <div class="relative">
-        <label>
-          <span>Введите название тикета:</span>
-          <br />
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="h-9 px-3 rounded-md border border-solid border-gray-300"
-            placeholder="BTC"
-          />
-        </label>
-        <ul
-          v-if="autocompleteTickers.length"
-          class="w-full absolute top-full rounded-b-md border-solid border-gray-300 border divide-y overflow-hidden"
-        >
-          <li
-            v-for="ticker in autocompleteTickers"
-            :key="ticker.Symbol"
-            class="flex items-center h-9 px-2 cursor-pointer bg-gray-50 hover:bg-gray-100"
-          >
-            {{ ticker.FullName }}
-          </li>
-        </ul>
+    <AddTrackedTicker @create="createTrackedTicker" />
+    <div class="mt-3 flex flex-col-reverse gap-3">
+      <div v-for="ticker in trackedTickers" :key="ticker.Symbol" class="w-full p-4 flex gap-3 items-center border border-gray-300">
+        <img :src="`https://www.cryptocompare.com${ticker.ImageUrl}?width=25`" :alt="ticker.FullName">
+        <div class="flex-1">
+          <div>{{ ticker.FullName }}</div>
+          <div v-if="ticker.price === -1">
+            Загрузка данных о цене...
+          </div>
+          <div v-else-if="!ticker.price">
+            Нет данных о цене...
+          </div>
+          <div v-else>
+            {{ ticker.price }}
+          </div>
+        </div>
+        <button @click="deleteTrackedTicker(ticker.Symbol)">
+          Удалить
+        </button>
       </div>
-
-      <button
-        class="h-9 px-3 text-white bg-gray-400 transition-colors duration-75 rounded-md hover:bg-gray-700"
-      >
-        Добавить
-      </button>
-    </form>
+    </div>
   </div>
 </template>
 
