@@ -35,26 +35,53 @@ function deleteTrackedTicker(tickerSymbol: string): void {
 </script>
 
 <template>
-  <div class="container max-w-5xl px-3 mx-auto">
+  <div class="container max-w-2xl px-3 mx-auto">
     <AddTrackedTicker @create="createTrackedTicker" />
     <div class="mt-3 flex flex-col-reverse gap-3">
-      <div v-for="ticker in trackedTickers" :key="ticker.Symbol" class="w-full p-4 flex gap-3 items-center border border-gray-300">
-        <img :src="`https://www.cryptocompare.com${ticker.ImageUrl}?width=25`" :alt="ticker.FullName">
-        <div class="flex-1">
-          <div>{{ ticker.FullName }}</div>
-          <div v-if="ticker.price === -1">
-            Загрузка данных о цене...
+      <div v-for="ticker in trackedTickers" :key="ticker.Symbol" class="w-full p-4 relative flex gap-3 items-center border rounded-md transition-colors hover:bg-gray-50" :class="(!ticker.price ? 'border-red-400 bg-red-50': 'border-gray-300')">
+        <!--<img :src="`https://www.cryptocompare.com${ticker.ImageUrl}?width=25`" :alt="ticker.FullName">-->
+        <div class="flex flex-wrap gap-3 flex-1 items-center">
+          <div class="w-1/3">
+            <div class="text-xl font-bold">
+              {{ ticker.FullName }}
+            </div>
           </div>
-          <div v-else-if="!ticker.price">
-            Нет данных о цене...
+
+          <div class="flex-1 pr-14 font-bold text-lg">
+            <div v-if="ticker.price === -1">
+              Загрузка данных о цене...
+            </div>
+            <div v-else-if="!ticker.price" class="text-center">
+              Нет данных о цене...
+            </div>
+            <div v-else class="py-1 flex items-center justify-center gap-1 bg-white rounded-md border-gray-200 border">
+              <svg
+                class="h-5 w-5 text-black"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >  <path stroke="none" d="M0 0h24v24H0z" />  <path d="M16.7 8a3 3 0 0 0 -2.7 -2h-4a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6h-4a3 3 0 0 1 -2.7 -2" />  <path d="M12 3v3m0 12v3" /></svg>
+              {{ ticker.price }}
+            </div>
           </div>
-          <div v-else>
-            {{ ticker.price }}
-          </div>
+
+          <button class="absolute right-0 top-0 h-full w-14 flex justify-center items-center transition-colors bg-red-400 hover:bg-red-600" @click="deleteTrackedTicker(ticker.Symbol)">
+            <svg
+              class="h-8 w-8 text-white"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >  <polyline points="3 6 5 6 21 6" />  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />  <line x1="10" y1="11" x2="10" y2="17" />  <line x1="14" y1="11" x2="14" y2="17" /></svg>
+          </button>
         </div>
-        <button @click="deleteTrackedTicker(ticker.Symbol)">
-          Удалить
-        </button>
       </div>
     </div>
   </div>

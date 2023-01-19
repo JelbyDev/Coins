@@ -3,6 +3,7 @@ type CallbackFunction = (newPrice: number) => void;
 const RESPONSE_INDEX = {
   PRICE_UPDATE: "5",
   INVALID: "500",
+
 };
 
 const tickersHandlers = new Map();
@@ -11,20 +12,26 @@ const socket = new WebSocket(
 );
 
 socket.addEventListener("message", (e) => {
-  const parsedSocketMessage = JSON.parse(e.data);
+  const parsedSocketData = JSON.parse(e.data);
 
-  const { TYPE: type } = parsedSocketMessage;
-  const { PRICE: newPrice, FROMSYMBOL: tickerName } = parsedSocketMessage;
+  const { TYPE: type, MESSAGE: message, PARAMETER: subs } = parsedSocketData;
+  let {
+    PRICE: newPrice,
+    FROMSYMBOL: tickerName,
+  } = parsedSocketData;
 
   switch (type) {
     case RESPONSE_INDEX.PRICE_UPDATE:
-      /* if (newPrice === undefined) {
+      if (newPrice === undefined) {
         return;
       }
-      if (currency === RESERVE_CURSE_NAME) {
-        newPrice *= RESERVE_CURSE_FROM_MAIN_CURSE;
-      } */
       break;
+    case RESPONSE_INDEX.INVALID: {
+      if (message !== "INVALID_SUB") { return; }
+      tickerName = getTickerNameFromInvalidSocketMessage(subs);
+      newPrice = 0;
+      break;
+    }
     default:
       return false;
       break;
@@ -32,6 +39,11 @@ socket.addEventListener("message", (e) => {
 
   updatedTickerPrice(tickerName, newPrice);
 });
+
+function getTickerNameFromInvalidSocketMessage(subsName: string): string {
+  const subsNameArr = subsName.split("~");
+  return subsNameArr[2];
+}
 
 function updatedTickerPrice(tickerName: string, newPrice: number) {
   const handlers = tickersHandlers.get(tickerName) ?? [];

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ComputedRef } from "vue";
+import { ComputedRef, Ref } from "vue";
 import { TickerFromApiResponse } from "@/types"
 
 const emits = defineEmits<{
@@ -17,7 +17,7 @@ if (responseAllTickers.value?.Data) {
   allTickers = Object.values(responseAllTickers.value.Data);
 }
 
-const searchQuery = useDebounce("", 300);
+const searchQuery: Ref<string> = ref(""); // useDebounce("", 300);
 const autocompleteTickers: ComputedRef<TickerFromApiResponse[]> = computed(() => {
   if (!searchQuery.value) {
     return [];
@@ -75,14 +75,14 @@ function onInput() {
         <input
           v-model="searchQuery"
           type="text"
-          class="h-9 px-3 rounded-md border border-solid border-gray-300"
+          class="h-9 px-3 rounded-md border border-gray-300"
           placeholder="BTC, btc, bitcoin..."
           @keydown.enter="onInput"
         >
       </label>
       <ul
         v-if="searchQuery"
-        class="w-full absolute top-full rounded-b-md border-solid border-gray-300 border divide-y overflow-hidden"
+        class="w-full absolute top-full rounded-b-md border-gray-300 border divide-y overflow-hidden z-10"
       >
         <li
           v-for="ticker in autocompleteTickers"
