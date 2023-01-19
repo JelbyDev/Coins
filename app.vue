@@ -10,6 +10,25 @@ import { subscribeToTicker, unsubscribeFromTicker } from "@/api/Ticker";
 
 const trackedTickers: Ref<TickerTracked[]> = ref([]);
 
+const { data: responseAllTickers } = await useFetch<{
+  Data: { [index: string]: TickerFromApiResponse };
+}>("https://min-api.cryptocompare.com/data/all/coinlist", {
+  query: { summary: true },
+  pick: ["Data"],
+});
+let allTickers: TickerFromApiResponse[] = [];
+if (responseAllTickers.value?.Data) {
+  allTickers = Object.values(responseAllTickers.value.Data);
+}
+const storageTrackedTicker = getItemFromStorage("trackedTickers");
+if (storageTrackedTicker) {
+  for (const ticker of JSON.parse(storageTrackedTicker)) {
+    ticker.price = -1;
+    trackedTickers.value.push(ticker);
+    subscribeToTicker(ticker.Symbol, (newPrice: number) => updateTrackedTickerPrice(ticker.Symbol, newPrice));
+  }
+}
+
 function createTrackedTicker(ticker: TickerFromApiResponse): void {
   const newTicker = {
     ...ticker,
@@ -32,11 +51,16 @@ function deleteTrackedTicker(tickerSymbol: string): void {
     ticker.Symbol !== tickerSymbol
   );
 }
+
+watch(() => trackedTickers.value.length, () => {
+  setItemInStorage("trackedTickers", JSON.stringify(trackedTickers.value));
+})
 </script>
 
 <template>
   <div class="container max-w-2xl px-3 mx-auto">
-    <AddTrackedTicker @create="createTrackedTicker" />
+    <AddTrackedTicker :all-tickers="allTickers" @create="createTrackedTicker" />
+
     <div class="mt-3 flex flex-col-reverse gap-3">
       <div v-for="ticker in trackedTickers" :key="ticker.Symbol" class="w-full p-4 relative flex gap-3 items-center border rounded-md transition-colors hover:bg-gray-50" :class="(!ticker.price ? 'border-red-400 bg-red-50': 'border-gray-300')">
         <!--<img :src="`https://www.cryptocompare.com${ticker.ImageUrl}?width=25`" :alt="ticker.FullName">-->

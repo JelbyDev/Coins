@@ -5,17 +5,7 @@ import { TickerFromApiResponse } from "@/types"
 const emits = defineEmits<{
   (e: "create", ticker: TickerFromApiResponse): void
 }>()
-
-const { data: responseAllTickers } = await useFetch<{
-  Data: { [index: string]: TickerFromApiResponse };
-}>("https://min-api.cryptocompare.com/data/all/coinlist", {
-  query: { summary: true },
-  pick: ["Data"],
-});
-let allTickers: TickerFromApiResponse[] = [];
-if (responseAllTickers.value?.Data) {
-  allTickers = Object.values(responseAllTickers.value.Data);
-}
+const props = defineProps<{allTickers: TickerFromApiResponse[]}>();
 
 const searchQuery: Ref<string> = ref(""); // useDebounce("", 300);
 const autocompleteTickers: ComputedRef<TickerFromApiResponse[]> = computed(() => {
@@ -26,7 +16,7 @@ const autocompleteTickers: ComputedRef<TickerFromApiResponse[]> = computed(() =>
   const MAX_LENGTH = 6;
   let matches = 0;
 
-  return allTickers.filter((ticker) => {
+  return props.allTickers.filter((ticker) => {
     if (
       (ticker.Symbol.toLocaleLowerCase().includes(
         searchQuery.value.toLocaleLowerCase()
@@ -49,7 +39,7 @@ function onSelect(ticker: TickerFromApiResponse) {
 }
 
 function onInput() {
-  const fiendTicker: TickerFromApiResponse | undefined = allTickers.find((ticker: TickerFromApiResponse) => {
+  const fiendTicker: TickerFromApiResponse | undefined = props.allTickers.find((ticker: TickerFromApiResponse) => {
     if (
       ticker.Symbol.toLocaleLowerCase() === searchQuery.value.toLocaleLowerCase() ||
       ticker.FullName.toLocaleLowerCase() === searchQuery.value.toLocaleLowerCase()
